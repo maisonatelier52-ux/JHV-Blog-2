@@ -126,16 +126,6 @@ export default function Shell({ children }: { children: ReactNode }) {
     document.querySelector<HTMLElement>("main h1")?.focus({ preventScroll: true });
   }, [later, pathname]);
 
-  // The chapter menu is desktop-only: close it if the window shrinks to a mobile width.
-  useEffect(() => {
-    const mobile = window.matchMedia("(max-width: 767px)");
-    const close = () => {
-      if (mobile.matches) setMenuOpen(false);
-    };
-    mobile.addEventListener("change", close);
-    return () => mobile.removeEventListener("change", close);
-  }, []);
-
   // Keyboard: arrows move through the story, Escape closes the menu.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -203,12 +193,13 @@ export default function Shell({ children }: { children: ReactNode }) {
             <button
               ref={menuButton}
               type="button"
+              aria-label={menuOpen ? "Close chapters menu" : "Open chapters menu"}
               aria-expanded={menuOpen}
               aria-controls="chapter-menu"
               onClick={() => setMenuOpen((open) => !open)}
-              className="hidden min-h-11 items-center gap-4 py-2 text-[12px] tracking-[0.17em] text-bone uppercase md:flex"
+              className="flex min-h-11 min-w-11 items-center justify-end gap-4 py-2 text-[12px] tracking-[0.17em] text-bone uppercase"
             >
-              {menuOpen ? "Close" : "Chapters"}
+              <span className="hidden md:inline">{menuOpen ? "Close" : "Chapters"}</span>
               <span aria-hidden="true" className="relative h-3.5 w-[22px]">
                 <i
                   className={`absolute left-0 h-px w-[22px] bg-bone transition-all duration-500 motion-reduce:transition-none ${
