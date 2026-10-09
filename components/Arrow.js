@@ -1,4 +1,4 @@
-export default function Arrow({ back = false, className = "" }: { back?: boolean; className?: string }) {
+export default function Arrow({ back = false, className = "" }) {
   return (
     <svg
       aria-hidden="true"

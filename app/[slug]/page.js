@@ -1,9 +1,6 @@
-import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Scene from "@/components/Scene";
 import { chapters, stops } from "@/lib/story";
-
-type Props = { params: Promise<{ slug: string }> };
 
 export const dynamicParams = false;
 
@@ -11,13 +8,13 @@ export function generateStaticParams() {
   return chapters.map((chapter) => ({ slug: chapter.slug }));
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }) {
   const { slug } = await params;
   const chapter = chapters.find((item) => item.slug === slug);
   return { title: chapter?.label };
 }
 
-export default async function ChapterPage({ params }: Props) {
+export default async function ChapterPage({ params }) {
   const { slug } = await params;
   const position = chapters.findIndex((item) => item.slug === slug);
   if (position < 0) notFound();
@@ -27,7 +24,6 @@ export default async function ChapterPage({ params }: Props) {
 
   return (
     <Scene
-      variant="chapter"
       lines={chapter.title}
       cta={{ href: next.href, label: next.label }}
       eyebrow={
@@ -39,7 +35,7 @@ export default async function ChapterPage({ params }: Props) {
       }
     >
       {chapter.paragraphs.map((paragraph, i) => (
-        <p key={paragraph} className={i > 0 ? "mt-4 tiny:hidden compact:max-md:hidden" : undefined}>
+        <p key={paragraph} className={i > 0 ? "mt-4" : undefined}>
           {paragraph}
         </p>
       ))}

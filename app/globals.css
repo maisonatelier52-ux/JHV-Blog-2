@@ -12,7 +12,7 @@
 @theme {
   /* Monochrome palette with a single greige accent */
   --color-ink: #000000;
-  --color-panel: #0b0b0a;
+  --color-panel: #000000;
   --color-bone: #eceae5;
   --color-silver: #c5c2bb;
   --color-greige: #b9b2a5;

@@ -4,7 +4,6 @@ import { NAME, stops } from "@/lib/story";
 export default function HomePage() {
   return (
     <Scene
-      variant="home"
       lines={["A long view", "on lasting value."]}
       cta={{ href: stops[1].href, label: `Who is ${NAME}?` }}
       eyebrow={

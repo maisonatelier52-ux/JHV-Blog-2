@@ -1,21 +1,14 @@
-import { createElement, type CSSProperties, type ReactNode } from "react";
+import { createElement } from "react";
 
 /*
- * Entrance animations only start once the page curtain lifts: <Shell /> sets
- * data-ready="true" on the root, and the `group-data-[ready=true]/app:` variants
- * below react to it. With reduced motion the content is simply visible.
+ * Entrance animations start once <Shell /> sets data-ready="true" on the root (after the loader on the
+ * first visit, immediately on every other load). Shell never sets it back to false, and every page is a
+ * fresh set of elements, so each page simply plays its entrance when it mounts. With reduced motion the
+ * content is simply visible.
  */
 
-type RiseProps = {
-  as?: "div" | "p" | "span" | "nav";
-  delay?: number;
-  className?: string;
-  style?: CSSProperties;
-  children: ReactNode;
-};
-
 /** Fade and lift. */
-export function Rise({ as = "div", delay = 0, className = "", style, children }: RiseProps) {
+export function Rise({ as = "div", delay = 0, className = "", style, children }) {
   return createElement(
     as,
     {
@@ -32,15 +25,7 @@ export function Rise({ as = "div", delay = 0, className = "", style, children }:
  * The start offset uses `transform` (not Tailwind's `translate-y-*`, which sets the separate
  * `translate` property) so it is replaced by the keyframes instead of stacking on top of them.
  */
-export function Line({
-  delay = 0,
-  className = "",
-  children,
-}: {
-  delay?: number;
-  className?: string;
-  children: ReactNode;
-}) {
+export function Line({ delay = 0, className = "", children }) {
   return (
     <span className="-mx-[0.12em] -mb-[0.3em] block overflow-hidden px-[0.12em] pb-[0.3em]">
       <span

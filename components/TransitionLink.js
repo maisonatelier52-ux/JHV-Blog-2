@@ -1,16 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useContext, type ComponentProps, type MouseEvent } from "react";
+import { useContext } from "react";
 import { TransitionContext } from "@/lib/transition";
 
-type Props = Omit<ComponentProps<typeof Link>, "href"> & { href: string };
-
-/** A normal next/link that plays the curtain transition before navigating. */
-export default function TransitionLink({ href, onClick, ...props }: Props) {
+/** A normal next/link that plays the page transition before navigating. */
+export default function TransitionLink({ href, onClick, ...props }) {
   const go = useContext(TransitionContext);
 
-  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+  const handleClick = (event) => {
     onClick?.(event);
     if (event.defaultPrevented) return;
     // Let the browser handle new-tab / new-window clicks.

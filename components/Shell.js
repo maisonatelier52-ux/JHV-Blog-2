@@ -2,14 +2,13 @@
 
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type TouchEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import logo from "@/public/images/logo-jhv.png";
 import { stops } from "@/lib/story";
 import { TransitionContext } from "@/lib/transition";
 import Arrow from "./Arrow";
+import Portrait from "./Portrait";
 import TransitionLink from "./TransitionLink";
-
-type Phase = "intro" | "revealing" | "idle";
 
 const INTRO_MS = 1300; // loader hold, home page on first load only
 const REVEAL_MS = 900; // intro curtain lifting
@@ -19,44 +18,48 @@ const SETTLE_MS = 500; // new page finishes entering
 const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // The curtain is only used once: the first load of the home page.
-const curtainClass: Record<Phase, string> = {
+const curtainClass = {
   intro: "translate-y-0",
   revealing: "animate-curtain-out",
   idle: "pointer-events-none invisible translate-y-full",
 };
 
-export default function Shell({ children }: { children: ReactNode }) {
+export default function Shell({ children }) {
   const pathname = usePathname();
   const router = useRouter();
 
   // The loading curtain only exists when the site is first opened on the home page.
   // Any other page (including a manual refresh) starts straight away with no curtain.
-  const [phase, setPhase] = useState<Phase>(pathname === "/" ? "intro" : "idle");
-  const [ready, setReady] = useState(pathname !== "/"); // content entrance animations may play
-  const [leaving, setLeaving] = useState<0 | 1 | -1>(0); // direction of the page that is sliding out
+  const [phase, setPhase] = useState(pathname === "/" ? "intro" : "idle");
+  // `ready` goes false -> true exactly ONCE (when the site first opens). It never goes back to false,
+  // so page changes can never leave content or the portrait hidden or half-animated.
+  const [ready, setReady] = useState(pathname !== "/");
+  const [leaving, setLeaving] = useState(0); // direction of the page that is sliding out (1, -1 or 0)
   const [menuOpen, setMenuOpen] = useState(false);
   // The loader (logo + line) plays once per full page load of the home page. Shell stays mounted while
   // navigating, so going to another page and back never replays it.
   const [loaderVisible, setLoaderVisible] = useState(pathname === "/");
 
   const busy = useRef(false);
-  const timers = useRef<number[]>([]);
+  const timers = useRef([]);
   const lastPath = useRef(pathname);
-  const touch = useRef<{ x: number; y: number } | null>(null);
-  const menuButton = useRef<HTMLButtonElement>(null);
+  const touch = useRef(null);
+  const menuButton = useRef(null);
 
   const found = stops.findIndex((stop) => stop.href === pathname);
   const index = Math.max(0, found);
   const last = stops.length - 1;
 
-  const later = useCallback((fn: () => void, ms: number) => {
+  const later = useCallback((fn, ms) => {
     timers.current.push(window.setTimeout(fn, ms));
   }, []);
 
-  useEffect(() => {
-    const pending = timers.current;
-    return () => pending.forEach((id) => window.clearTimeout(id));
+  const clearTimers = useCallback(() => {
+    timers.current.forEach((id) => window.clearTimeout(id));
+    timers.current = [];
   }, []);
+
+  useEffect(() => clearTimers, [clearTimers]);
 
   // First load of the home page: hold the loader briefly, then lift the curtain.
   useEffect(() => {
@@ -84,7 +87,7 @@ export default function Shell({ children }: { children: ReactNode }) {
 
   /** Page change: the old page slides out in the direction of travel, then the new one animates in. */
   const go = useCallback(
-    (href: string) => {
+    (href) => {
       setMenuOpen(false);
       if (href === pathname || busy.current) return;
 
@@ -95,47 +98,41 @@ export default function Shell({ children }: { children: ReactNode }) {
 
       const target = stops.findIndex((stop) => stop.href === href);
       busy.current = true;
+      clearTimers();
       setLeaving(target > index ? 1 : -1);
 
+      later(() => router.push(href), EXIT_MS);
+      // Safety net: if the route never loads, bring the current page back instead of leaving it hidden.
       later(() => {
-        setReady(false); // hide the old page's content until the new route has mounted
-        router.push(href);
-      }, EXIT_MS);
-      // Safety net: never leave the page hidden if the route fails to load.
-      later(() => {
-        if (!busy.current) return;
         setLeaving(0);
-        setReady(true);
         busy.current = false;
       }, EXIT_MS + 5000);
     },
-    [index, later, pathname, router],
+    [clearTimers, index, later, pathname, router],
   );
 
-  // The new route has mounted: bring it in and move focus to its heading.
+  // The new route has mounted (also covers the browser back / forward buttons): show it and focus its heading.
   useEffect(() => {
     if (lastPath.current === pathname) return;
     lastPath.current = pathname;
-    if (busy.current) {
-      setLeaving(0);
-      setReady(true);
-      later(() => {
-        busy.current = false;
-      }, SETTLE_MS);
-    }
-    document.querySelector<HTMLElement>("main h1")?.focus({ preventScroll: true });
-  }, [later, pathname]);
+    clearTimers(); // drop the safety net of the navigation that just finished
+    setLeaving(0);
+    later(() => {
+      busy.current = false;
+    }, SETTLE_MS);
+    document.querySelector("main h1")?.focus({ preventScroll: true });
+  }, [clearTimers, later, pathname]);
 
   // Keyboard: arrows move through the story, Escape closes the menu.
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
+    const onKey = (event) => {
       if (event.key === "Escape" && menuOpen) {
         setMenuOpen(false);
         menuButton.current?.focus();
         return;
       }
       if (menuOpen || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-      const el = event.target as HTMLElement | null;
+      const el = event.target;
       if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
       if (event.key === "ArrowRight" && index < last) go(stops[index + 1].href);
       if (event.key === "ArrowLeft" && index > 0) go(stops[index - 1].href);
@@ -145,11 +142,11 @@ export default function Shell({ children }: { children: ReactNode }) {
   }, [go, index, last, menuOpen]);
 
   // Touch: horizontal swipe moves through the story.
-  const onTouchStart = (event: TouchEvent) => {
+  const onTouchStart = (event) => {
     const point = event.touches[0];
     touch.current = { x: point.clientX, y: point.clientY };
   };
-  const onTouchEnd = (event: TouchEvent) => {
+  const onTouchEnd = (event) => {
     const start = touch.current;
     touch.current = null;
     if (!start || menuOpen) return;
@@ -167,11 +164,14 @@ export default function Shell({ children }: { children: ReactNode }) {
     <TransitionContext.Provider value={go}>
       <div
         data-ready={ready}
-        style={{ "--d": loaderVisible ? "350ms" : "0ms" } as CSSProperties}
+        style={{ "--d": loaderVisible ? "350ms" : "0ms" }}
         className="group/app relative h-dvh w-full overflow-hidden bg-black"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
+        {/* ───────────── Portrait: one fixed layer behind every page ───────────── */}
+        <Portrait shown={ready} />
+
         {/* ───────────── Header ───────────── */}
         <header className="absolute inset-x-0 top-0 z-50 flex h-[76px] items-center justify-between px-[6%] pt-[env(safe-area-inset-top)] md:h-24 md:px-[5%]">
           <TransitionLink href="/" aria-label="Julio Herrera Velutini, home" className="flex items-center gap-3.5 md:gap-4">
@@ -216,11 +216,11 @@ export default function Shell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        {/* ───────────── Page ───────────── */}
+        {/* ───────────── Page (only the text slides; the portrait behind it never moves) ───────────── */}
         <main
           id="main"
           inert={menuOpen}
-          className={`absolute inset-0 ${
+          className={`absolute inset-0 z-20 ${
             leaving === 0
               ? ""
               : `opacity-0 transition-[opacity,translate] duration-200 ease-in ${
@@ -307,14 +307,12 @@ export default function Shell({ children }: { children: ReactNode }) {
           ))}
         </nav>
 
-        {/* ───────────── Page transition curtain ───────────── */}
+        {/* ───────────── Loading curtain (first load of the home page): pure black ───────────── */}
         <div
           data-curtain
           aria-hidden={phase === "idle"}
-          className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-panel ${curtainClass[phase]}`}
+          className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black ${curtainClass[phase]}`}
         >
-          <span className="absolute inset-x-0 top-0 h-px bg-bone/60 shadow-[0_0_24px_2px_rgba(236,234,229,0.35)]" />
-          <span className="absolute inset-x-0 bottom-0 h-px bg-bone/15" />
           {loaderVisible && (
             <>
               <Image src={logo} alt="" priority sizes="120px" className="h-[132px] w-auto md:h-[156px]" />

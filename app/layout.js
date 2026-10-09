@@ -1,4 +1,3 @@
-import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import Shell from "@/components/Shell";
 import "./globals.css";
@@ -20,7 +19,7 @@ const sans = localFont({
   display: "swap",
 });
 
-export const metadata: Metadata = {
+export const metadata = {
   title: {
     default: "Julio Herrera Velutini",
     template: "%s — Julio Herrera Velutini",
@@ -31,16 +30,16 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export const viewport: Viewport = {
+export const viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
   themeColor: "#000000",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable}`}>
+    <html lang="en" className={`${display.variable} ${sans.variable} bg-black`}>
       <body className="bg-black font-sans text-silver antialiased">
         {/* Without JavaScript there is nothing to lift the curtain or start the animations. */}
         <noscript>
