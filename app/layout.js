@@ -19,6 +19,16 @@ const sans = localFont({
   display: "swap",
 });
 
+// Handwriting face for the JHV mark: Whisper from Google Fonts (SIL Open Font License), the closest match to the
+// design screenshot. It is typed text, not an image. To use another script font, replace
+// app/fonts/whisper.woff2 and keep the variable name.
+const script = localFont({
+  src: "./fonts/whisper.woff2",
+  weight: "400",
+  variable: "--font-signature",
+  display: "block",
+});
+
 export const metadata = {
   title: {
     default: "Julio Herrera Velutini",
@@ -39,11 +49,11 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable} bg-black`}>
+    <html lang="en" className={`${display.variable} ${sans.variable} ${script.variable} bg-black`}>
       <body className="bg-black font-sans text-silver antialiased">
         {/* Without JavaScript there is nothing to lift the curtain or start the animations. */}
         <noscript>
-          <style>{`[data-curtain]{display:none!important}[data-reveal]{opacity:1!important;transform:none!important}`}</style>
+          <style>{`[data-curtain]{display:none!important}[data-reveal]{opacity:1!important;transform:none!important;clip-path:none!important}`}</style>
         </noscript>
         <Shell>{children}</Shell>
       </body>

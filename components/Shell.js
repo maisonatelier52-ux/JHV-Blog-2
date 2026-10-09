@@ -7,10 +7,12 @@ import logo from "@/public/images/logo-jhv.png";
 import { stops } from "@/lib/story";
 import { TransitionContext } from "@/lib/transition";
 import Arrow from "./Arrow";
+import LoaderSignature from "./LoaderSignature";
 import Portrait from "./Portrait";
+import Signature from "./Signature";
 import TransitionLink from "./TransitionLink";
 
-const INTRO_MS = 1300; // loader hold, home page on first load only
+const INTRO_MS = 2400; // loader hold (long enough for the JHV mark to finish writing), home page on first load only
 const REVEAL_MS = 900; // intro curtain lifting
 const EXIT_MS = 200; // old page slides and fades out
 const SETTLE_MS = 500; // new page finishes entering
@@ -36,7 +38,7 @@ export default function Shell({ children }) {
   const [ready, setReady] = useState(pathname !== "/");
   const [leaving, setLeaving] = useState(0); // direction of the page that is sliding out (1, -1 or 0)
   const [menuOpen, setMenuOpen] = useState(false);
-  // The loader (logo + line) plays once per full page load of the home page. Shell stays mounted while
+  // The loader (logo + JHV mark) plays once per full page load of the home page. Shell stays mounted while
   // navigating, so going to another page and back never replays it.
   const [loaderVisible, setLoaderVisible] = useState(pathname === "/");
 
@@ -231,6 +233,9 @@ export default function Shell({ children }) {
           {children}
         </main>
 
+        {/* ───────────── JHV mark: bottom-left on every page ───────────── */}
+        <Signature />
+
         {/* ───────────── Footer ───────────── */}
         <footer
           inert={menuOpen}
@@ -315,9 +320,13 @@ export default function Shell({ children }) {
         >
           {loaderVisible && (
             <>
-              <Image src={logo} alt="" priority sizes="120px" className="h-[132px] w-auto md:h-[156px]" />
-              <div className="mt-6 h-px w-32 overflow-hidden bg-line">
-                <i className="block h-full origin-left animate-loader bg-greige" />
+              <Image src={logo} alt="" priority sizes="120px" className="h-[200px] w-auto md:h-[200px]" />
+              {/* Zero-height spacer: it takes exactly the room the old loading line took, so the logo stays
+                  where it was. The JHV mark hangs from it, just under the logo. */}
+              <div className="relative mt-6 h-px w-0">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2.5">
+                  <LoaderSignature />
+                </div>
               </div>
             </>
           )}
